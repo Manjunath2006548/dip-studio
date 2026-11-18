@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DIP Studio — Histogram Equalization Workbench</title>
+  <meta name="description" content="An interactive histogram-equalization workbench with figures, quality metrics and a complete reproducible pipeline.">
+  <link rel="stylesheet" href="/static/site.css">
+</head>
+<body class="landing">
+  <header class="site-nav">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none"><rect x="12" y="14" width="4.5" height="19" rx="1.2" fill="currentColor" opacity=".65"/><rect x="19" y="8" width="4.5" height="25" rx="1.2" fill="currentColor"/><rect x="26" y="17" width="4.5" height="16" rx="1.2" fill="currentColor" opacity=".8"/><rect x="33" y="24" width="3" height="9" rx="1" fill="currentColor" opacity=".4"/></svg>
+      </span>
+      <span class="brand-copy"><strong>DIP Studio</strong><small>Histogram equalization workbench</small></span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#founder">Founder</a>
+      <a class="btn ghost" href="/app">Open workbench</a>
+      <a class="btn primary" href="/register">Create account</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-bg-graph" aria-hidden="true"></div>
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <span class="eyebrow">INTERACTIVE IMAGE PROCESSING</span>
+        <h1>See the image.<br><em>Understand the histogram.</em></h1>
+        <p class="lede">A complete, runnable reproduction of the histogram-equalization experiment — from the grayscale conversion and CDF mapping to CLAHE, contrast stretching and every quality parameter in the report.</p>
+        <div class="hero-actions">
+          <a class="btn primary big" href="/register">Start the experiment</a>
+          <a class="btn ghost big" href="/login">I have an account</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-frame diagram">
+          <img src="/static/images/hero-diagram.svg" alt="Histogram, CDF mapping and equalized histogram diagram" width="1260" height="350">
+        </div>
+        <div class="float-card fc-one"><span>OpenCV cross-check</span><strong>0 gl</strong><small>max |HE − cv2|</small></div>
+        <div class="float-card fc-two"><span>Day contrast</span><strong>1.56×</strong><small>σ 47.0 → 73.4</small></div>
+      </div>
+    </section>
+
+    <div class="stats-wrap">
+      <section class="stats" aria-label="Experiment at a glance">
+        <div class="stat"><strong>4</strong><span>illumination conditions</span></div>
+        <div class="stat"><strong>256</strong><span>grey levels mapped by CDF</span></div>
+        <div class="stat"><strong>11</strong><span>quality parameters measured</span></div>
+        <div class="stat"><strong>100%</strong><span>user-defined NumPy routines</span></div>
+      </section>
+    </div>
+
+    <section class="section" id="features">
+      <div class="section-head">
+        <div><span class="eyebrow">INSIDE THE WORKBENCH</span><h2>Everything the report asks for, executable</h2></div>
+      </div>
+      <div class="feature-grid">
+        <article class="feature">
+          <span class="feature-icon">01</span>
+          <h3>User-defined pipeline</h3>
+          <p>Centre-cropping, BT.601 grayscale, histogram, PDF, CDF, the mapping, percentile stretching, entropy and Immerkaer noise — all written with NumPy.</p>
+        </article>
+        <article class="feature">
+          <span class="feature-icon">02</span>
+          <h3>Figures that explain</h3>
+          <p>Per-condition analysis panels, transformation curves, before/after slider, CLAHE and stretch comparisons, and charts for contrast, entropy and SNR.</p>
+        </article>
+        <article class="feature">
+          <span class="feature-icon">03</span>
+          <h3>Numbers you can audit</h3>
+          <p>Five result tables, an independent OpenCV cross-check, CSV/JSON export and a complete ZIP containing the source, report and every figure.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="founder" id="founder">
+      <div class="founder-card">
+        <span class="avatar" aria-hidden="true">MBH</span>
+        <div>
+          <span class="eyebrow">FOUNDER &amp; DEVELOPER</span>
+          <h2>Manjunath Bhaskar Hebbar</h2>
+          <p class="founder-note">Built as a complete, reproducible web workbench for the histogram-equalization experiment.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Ready to run the experiment?</h2>
+      <p>Create an account with a strong password, then open the workbench.</p>
+      <div class="hero-actions"><a class="btn primary big" href="/register">Create account</a><a class="btn ghost big" href="/login">Log in</a></div>
+    </section>
+  </main>
+</body>
+</html>

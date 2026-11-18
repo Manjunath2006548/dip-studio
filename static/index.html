@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Interactive histogram equalization workbench with figures, metrics and a complete reproducible pipeline">
+  <title>DIP Studio · Histogram Equalization Workbench</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="glow glow-a"></div>
+  <div class="glow glow-b"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none">
+          <rect x="5" y="21" width="4.5" height="12" rx="1.2" fill="currentColor" opacity=".45"/>
+          <rect x="12" y="14" width="4.5" height="19" rx="1.2" fill="currentColor" opacity=".65"/>
+          <rect x="19" y="8" width="4.5" height="25" rx="1.2" fill="currentColor"/>
+          <rect x="26" y="17" width="4.5" height="16" rx="1.2" fill="currentColor" opacity=".8"/>
+          <rect x="33" y="24" width="3" height="9" rx="1" fill="currentColor" opacity=".4"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>DIP Studio</h1>
+        <p>Histogram equalization workbench</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="chip" id="userChip"></span>
+      <span class="chip" id="stackChip">Python · OpenCV</span>
+      <a class="btn ghost" href="/">Home</a>
+      <button class="btn ghost" id="logoutBtn" type="button">Log out</button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <!-- ============================ SIDEBAR ============================ -->
+    <aside class="sidebar">
+      <section class="card">
+        <div class="card-head">
+          <span class="step">01</span>
+          <h2>Source images</h2>
+        </div>
+
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose images">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 16V4m0 0 4 4m-4-4L8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <strong>Drop images here</strong>
+          <span>or click to browse · JPG / PNG · up to 4 files</span>
+          <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <div class="sample-row">
+          <button class="btn soft" id="sampleBtn" type="button">Load sample scene</button>
+          <span class="hint" id="sampleHint">Forest stream · 1600 × 720</span>
+        </div>
+
+        <div class="mode-block">
+          <label class="radio-row">
+            <input type="radio" name="mode" value="simulate" checked>
+            <span><strong>Simulate 4 illuminations</strong></span>
+          </label>
+          <label class="radio-row">
+            <input type="radio" name="mode" value="direct">
+            <span><strong>Use 4 photos as they are</strong><em>Assign each upload to a condition</em></span>
+          </label>
+        </div>
+        <p class="note" id="modeNote">Upload one photo — its lighting condition is detected automatically and the other three are generated from it.</p>
+
+        <div class="detect-result" id="detectResult" hidden>
+          <span>Detected condition</span>
+          <strong id="detectCondition">—</strong>
+          <em id="detectDetail">—</em>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <span class="step">02</span>
+          <h2>Parameters</h2>
+        </div>
+        <div class="param-grid">
+          <label class="field">
+            <span>Working size</span>
+            <select id="sizeSelect">
+              <option value="640x480" selected>640 × 480 (report)</option>
+              <option value="800x600">800 × 600</option>
+              <option value="480x360">480 × 360</option>
+              <option value="1280x960">1280 × 960</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>CLAHE tiles</span>
+            <select id="tileSelect">
+              <option value="4">4 × 4</option>
+              <option value="8" selected>8 × 8 (report)</option>
+              <option value="16">16 × 16</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>CLAHE clip limit</span>
+            <input id="clipInput" type="number" value="2.0" min="0.1" max="20" step="0.1">
+          </label>
+          <label class="field">
+            <span>Stretch percentiles</span>
+            <div class="inline-inputs">
+              <input id="loInput" type="number" value="1" min="0" max="49" step="1" aria-label="Low percentile">
+              <span>–</span>
+              <input id="hiInput" type="number" value="99" min="51" max="100" step="1" aria-label="High percentile">
+            </div>
+          </label>
+        </div>
+
+        <details class="advanced">
+          <summary>Simulation exposure gains</summary>
+          <div class="param-grid gains">
+            <label class="field">
+              <span>Midday</span>
+              <input id="gainMidday" type="number" value="2.6" min="0.1" max="20" step="0.1">
+            </label>
+            <label class="field">
+              <span>Evening</span>
+              <input id="gainEvening" type="number" value="0.20" min="0.01" max="5" step="0.01">
+            </label>
+            <label class="field">
+              <span>Night</span>
+              <input id="gainNight" type="number" value="0.012" min="0.001" max="1" step="0.001">
+            </label>
+          </div>
+          <p class="note">These are the linear-light exposure multipliers used to synthesise the other three conditions. They only apply in simulate mode.</p>
+        </details>
+      </section>
+
+      <button class="btn primary run-btn" id="runBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M8 5.5v13l10-6.5-10-6.5Z" fill="currentColor"/>
+        </svg>
+        Run analysis
+      </button>
+      <div class="status" id="status"><span class="dot"></span><span id="statusText">Ready — sample scene preloaded on first run.</span></div>
+    </aside>
+
+    <!-- ============================ CONTENT ============================ -->
+    <main class="content">
+      <section class="kpis" id="kpis">
+        <div class="kpi">
+          <span class="kpi-label">Brightness spread</span>
+          <strong class="kpi-value" id="kpiSpread">—</strong>
+          <span class="kpi-sub" id="kpiSpreadSub">mean grey level, original → HE</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Contrast gain</span>
+          <strong class="kpi-value" id="kpiGain">—</strong>
+          <span class="kpi-sub" id="kpiGainSub">standard deviation σ</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Mean brightness error</span>
+          <strong class="kpi-value" id="kpiAmbe">—</strong>
+          <span class="kpi-sub" id="kpiAmbeSub">average AMBE, grey levels</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">OpenCV cross-check</span>
+          <strong class="kpi-value" id="kpiVerify">—</strong>
+          <span class="kpi-sub" id="kpiVerifySub">max |user HE − cv2.equalizeHist|</span>
+        </div>
+      </section>
+
+      <nav class="tabs" role="tablist" aria-label="Result sections">
+        <button class="tab active" data-tab="panels" role="tab" aria-selected="true">Figures</button>
+        <button class="tab" data-tab="metrics" role="tab" aria-selected="false">Metrics</button>
+        <button class="tab" data-tab="techniques" role="tab" aria-selected="false">Techniques</button>
+        <button class="tab" data-tab="method" role="tab" aria-selected="false">Method</button>
+        <span class="tab-meta" id="runMeta"></span>
+      </nav>
+
+      <!-- FIGURES -->
+      <section class="tabpane active" id="pane-panels" role="tabpanel">
+        <div class="section-head">
+          <div>
+            <h2>Condition panels</h2>
+            <p>Original colour → grayscale → equalized image, with the PDF/CDF and the mapping s = T(r).</p>
+          </div>
+          <div class="cond-switch" id="condSwitch"></div>
+        </div>
+
+        <div class="summary-strip" id="condSummary">Run the analysis to populate this panel.</div>
+
+        <figure class="figure-card panel-figure">
+          <img id="panelImage" class="zoomable" alt="Analysis panel" data-caption="">
+          <figcaption id="panelCaption">Condition panel will appear here.</figcaption>
+        </figure>
+
+        <div class="grid-2">
+          <div class="card compare-card">
+            <div class="card-head">
+              <h3>Before / after</h3>
+              <span class="hint">drag the slider</span>
+            </div>
+            <div class="compare" id="compare">
+              <img id="cmpOrig" alt="Original grayscale">
+              <div class="cmp-top" id="cmpTop"><img id="cmpHe" alt="Equalized grayscale"></div>
+              <div class="cmp-line" id="cmpLine"></div>
+              <span class="cmp-tag left">Original</span>
+              <span class="cmp-tag right">Global HE</span>
+              <input type="range" id="cmpRange" min="0" max="100" value="50" aria-label="Before and after comparison position">
+            </div>
+            <p class="note">Left of the divider is the original grayscale image, right is the global-histogram-equalized result.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h3>Quality parameters</h3>
+              <span class="hint" id="condSize">—</span>
+            </div>
+            <div class="stat-list" id="condStats"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- METRICS -->
+      <section class="tabpane" id="pane-metrics" role="tabpanel">
+        <div class="section-head">
+          <div>
+            <h2>Quantitative performance</h2>
+            <p>Every number is recomputed from the images produced by the current run — nothing is hard-coded.</p>
+          </div>
+          <div class="actions">
+            <button class="btn ghost" id="csvBtn" type="button">Download CSV</button>
+            <button class="btn ghost" id="jsonBtn" type="button">Download JSON</button>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-head"><h3>Brightness, contrast and entropy</h3><span class="hint">original → global HE</span></div>
+          <div class="table-scroll" id="table6"></div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-head"><h3>Signal-to-noise ratios</h3><span class="hint">μ/σ and Immerkaer noise estimate</span></div>
+          <div class="table-scroll" id="table7"></div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-head"><h3>Dynamic range, sharpness and fidelity</h3><span class="hint">MSE / PSNR / AMBE against the original</span></div>
+          <div class="table-scroll" id="table8"></div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-head"><h3>Technique comparison</h3><span class="hint">σ / entropy / noise SNR</span></div>
+          <div class="table-scroll" id="table9"></div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-head"><h3>Verification and histogram tails</h3><span class="hint">HE against OpenCV, levels used, clipping</span></div>
+          <div class="table-scroll" id="table10"></div>
+        </div>
+      </section>
+
+      <!-- TECHNIQUES -->
+      <section class="tabpane" id="pane-techniques" role="tabpanel">
+        <div class="section-head">
+          <div>
+            <h2>Technique comparison</h2>
+            <p>Global HE is compared with CLAHE and linear contrast stretching on the same four images.</p>
+          </div>
+        </div>
+
+        <figure class="figure-card">
+          <img id="overviewImage" class="zoomable" alt="Technique overview grid" data-caption="Original vs global HE vs CLAHE vs contrast stretching">
+          <figcaption id="overviewCaption">Figure 7 equivalent — original grayscale, global HE, CLAHE and contrast stretching.</figcaption>
+        </figure>
+
+        <div class="grid-2">
+          <figure class="figure-card">
+            <img id="techniquesChart" class="zoomable" alt="Technique comparison chart" data-caption="Contrast, entropy and noise SNR by technique">
+            <figcaption id="techniquesCaption">Contrast, entropy and noise-based SNR for each technique.</figcaption>
+          </figure>
+          <figure class="figure-card">
+            <img id="metricsChart" class="zoomable" alt="Before and after metrics chart" data-caption="Quality parameters before and after HE">
+            <figcaption id="metricsCaption">Mean, contrast, entropy and noise-based SNR before and after global HE.</figcaption>
+          </figure>
+        </div>
+
+        <div class="callout">
+          <strong>Reading the comparison</strong>
+          <p>Global HE gives the strongest, most uniform redistribution and lifts the shadowed evening and night images the most. CLAHE keeps noise in check by clipping each tile's histogram, so its contrast gain is smaller. Contrast stretching preserves the histogram shape and cannot recover detail that was never recorded.</p>
+        </div>
+      </section>
+
+      <!-- METHOD -->
+      <section class="tabpane" id="pane-method" role="tabpanel">
+        <div class="section-head">
+          <div>
+            <h2>Method</h2>
+            <p>Why histogram equalization works, and what the pipeline does to each image.</p>
+          </div>
+        </div>
+
+        <div class="grid-2 method-grid">
+          <article class="card prose">
+            <h3>1 · Illumination and intensity</h3>
+            <p>A monochrome image is a two-dimensional array <em>f</em>(<em>x</em>, <em>y</em>) of <em>M</em> × <em>N</em> pixels with intensities 0 … <em>L</em>−1. The recorded value is the product of illumination and reflectance:</p>
+            <p class="equation">f(x, y) = i(x, y) · r<sub>o</sub>(x, y)</p>
+            <p>Weak light crowds intensities into the dark end of the scale; strong light clips them at the bright end. In both cases the usable dynamic range shrinks and the picture looks flat.</p>
+
+            <h3>2 · Histogram, PDF and CDF</h3>
+            <p>The histogram <em>h</em>(<em>r<sub>k</sub></em>) = <em>n<sub>k</sub></em> counts pixels per grey level. Dividing by <em>M·N</em> gives the PDF, and its running sum is the CDF:</p>
+            <p class="equation">p(r<sub>k</sub>) = n<sub>k</sub> / (M·N) &nbsp;&nbsp;·&nbsp;&nbsp; c(r<sub>k</sub>) = Σ<sub>j≤k</sub> p(r<sub>j</sub>)</p>
+
+            <h3>3 · Equalization mapping</h3>
+            <p>For continuous intensities the scaled CDF produces a uniform output PDF. For discrete 8-bit images the practical mapping subtracts the minimum non-zero CDF value:</p>
+            <p class="equation">s<sub>k</sub> = round[ (c(r<sub>k</sub>) − c<sub>min</sub>) / (1 − c<sub>min</sub>) · 255 ]</p>
+            <p>The mapping is monotonic, so grey-level order is preserved. Because levels are merged, the equalized histogram is only approximately flat — but its CDF becomes close to a straight line.</p>
+          </article>
+
+          <article class="card prose">
+            <h3>Pipeline used by this workbench</h3>
+            <ol class="steps-list">
+              <li>Read the image, centre-crop to the working aspect ratio and resize with <code>INTER_AREA</code>.</li>
+              <li>Convert to grayscale with ITU-R BT.601 weights: <code>0.299R + 0.587G + 0.114B</code>.</li>
+              <li>Compute the histogram, then the PDF and CDF with user-defined functions.</li>
+              <li>Build the look-up table from Eq. (5) and apply it to every pixel.</li>
+              <li>Cross-check against <code>cv2.equalizeHist</code> and produce CLAHE and percentile-stretch comparisons.</li>
+              <li>Recompute histogram, PDF and CDF of the result and evaluate all quality parameters.</li>
+            </ol>
+
+            <h3>Simulating the four illuminations</h3>
+            <p>The Day image is a real phone photograph. Midday, Evening and Night are produced in linear light (γ = 2.2) by applying an exposure gain — 2.6×, 0.20× and 0.012× respectively — a colour-temperature tint, graded sun glare for midday, a localised warm lamp pool for night, and signal-dependent sensor noise that grows as the scene darkens. The scene content and framing are identical in all four images; only the illumination changes.</p>
+
+            <h3>Quality parameters</h3>
+            <div class="mini-table">
+              <div><span>Mean μ</span><span>overall brightness</span></div>
+              <div><span>Contrast σ</span><span>RMS spread of intensities</span></div>
+              <div><span>Entropy H</span><span>−Σ p log₂ p, bits/pixel</span></div>
+              <div><span>SNR<sub>1</sub></span><span>20 log₁₀(μ/σ), dB</span></div>
+              <div><span>SNR<sub>2</sub></span><span>20 log₁₀(σ/σ<sub>n</sub>), dB</span></div>
+              <div><span>MSE / PSNR</span><span>difference from the original</span></div>
+              <div><span>AMBE</span><span>|μ<sub>enhanced</sub> − μ<sub>original</sub>|</span></div>
+              <div><span>Sharpness</span><span>mean Sobel gradient magnitude</span></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="callout">
+          <strong>Expected behaviour</strong>
+          <p>HE should pull every condition's mean brightness close to mid-grey (≈128) and increase σ, with the largest gains for evening and night. Entropy may fall slightly because neighbouring grey levels are merged. In dark images the steep mapping also magnifies sensor noise, which is why CLAHE or denoising before equalization is preferable for noisy night scenes.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Figure preview">
+    <button class="lb-close" id="lbClose" type="button" aria-label="Close">×</button>
+    <img id="lbImage" alt="Enlarged figure">
+    <div class="lb-bar">
+      <span id="lbCaption"></span>
+      <a id="lbDownload" download="figure.png">Download PNG</a>
+    </div>
+  </div>
+
+  <!-- Busy overlay -->
+  <div class="busy" id="busy" aria-live="polite" aria-hidden="true">
+    <div class="busy-card">
+      <div class="spinner"></div>
+      <strong id="busyTitle">Running the pipeline…</strong>
+      <span id="busySub">Preparing images and computing histograms</span>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+</body>
+</html>

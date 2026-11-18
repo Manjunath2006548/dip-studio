@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Account · DIP Studio</title>
+  <link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+  <header class="site-nav">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none"><rect x="12" y="14" width="4.5" height="19" rx="1.2" fill="currentColor" opacity=".65"/><rect x="19" y="8" width="4.5" height="25" rx="1.2" fill="currentColor"/><rect x="26" y="17" width="4.5" height="16" rx="1.2" fill="currentColor" opacity=".8"/><rect x="33" y="24" width="3" height="9" rx="1" fill="currentColor" opacity=".4"/></svg>
+      </span>
+      <span class="brand-copy"><strong>DIP Studio</strong><small>Histogram equalization workbench</small></span>
+    </a>
+    <nav class="nav-links"><a href="/">Home</a><a class="btn ghost" href="/app">Workbench</a></nav>
+  </header>
+
+  <main class="auth-wrap">
+    <div class="auth-card">
+      <span class="eyebrow">SECURE ACCESS</span>
+      <h1 id="authTitle">Create your account</h1>
+      <p id="authSub">A strong password keeps your work and results private.</p>
+
+      <div class="auth-switch" role="tablist" aria-label="Account action">
+        <button type="button" id="tabRegister" class="active" role="tab">Register</button>
+        <button type="button" id="tabLogin" role="tab">Log in</button>
+      </div>
+
+      <form id="authForm" novalidate>
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" autocomplete="username" required
+                 minlength="3" maxlength="32" placeholder="e.g. manju_eb">
+        </div>
+
+        <div class="field" id="emailField">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required
+                 maxlength="254" placeholder="you@example.com">
+          <small class="field-error" id="emailError" aria-live="polite"></small>
+        </div>
+
+        <div class="field" id="passwordField">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" required
+                 autocomplete="new-password" placeholder="At least 12 characters">
+          <button class="toggle-pass" type="button" id="togglePass">SHOW</button>
+        </div>
+
+        <div id="strengthBlock">
+          <div class="strength">
+            <div class="strength-bar"><i id="strengthFill"></i></div>
+            <div class="strength-label"><span id="strengthText">Enter a password</span><span id="strengthScore"></span></div>
+          </div>
+          <ul class="rules" id="rules">
+            <li data-rule="length">12+ characters</li>
+            <li data-rule="lower">lowercase letter</li>
+            <li data-rule="upper">uppercase letter</li>
+            <li data-rule="digit">number</li>
+            <li data-rule="special">special character</li>
+            <li data-rule="common">not predictable</li>
+          </ul>
+        </div>
+
+        <div class="field" id="confirmField">
+          <label for="confirm">Confirm password</label>
+          <input id="confirm" type="password" required autocomplete="new-password"
+                 placeholder="Repeat your password">
+        </div>
+
+        <button class="btn primary full big" type="submit" id="submitBtn">Create account</button>
+        <p class="auth-msg" id="authMsg" role="status" aria-live="polite"></p>
+      </form>
+
+      <div class="auth-foot" id="authFoot">
+        Already registered? <a href="/login">Log in instead</a>.
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (() => {
+    const $ = (s) => document.querySelector(s);
+    const form = $('#authForm');
+    const user = $('#username');
+    const email = $('#email');
+    const pass = $('#password');
+    const confirm = $('#confirm');
+    const msg = $('#authMsg');
+    const tabReg = $('#tabRegister');
+    const tabLog = $('#tabLogin');
+    const isLogin = () => location.pathname === '/login';
+    const next = new URLSearchParams(location.search).get('next') || '/app';
+    const common = new Set(['password','password123','123456789','qwerty123',
+      'letmein123','admin12345','welcome123','iloveyou1','abc123456',
+      '111111111','password1!','dipstudio1','manjunath123']);
+
+    let mode = isLogin() ? 'login' : 'register';
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      const register = mode === 'register';
+      tabReg.classList.toggle('active', register);
+      tabLog.classList.toggle('active', !register);
+      $('#authTitle').textContent = register ? 'Create your account' : 'Welcome back';
+      $('#authSub').textContent = register
+        ? 'A strong password keeps your work and results private.'
+        : 'Log in to continue to the histogram equalization workbench.';
+      $('#emailField').style.display = register ? 'block' : 'none';
+      email.required = register;
+      $('#strengthBlock').style.display = register ? 'block' : 'none';
+      $('#confirmField').style.display = register ? 'block' : 'none';
+      $('#emailError').textContent = '';
+      $('#emailError').classList.remove('show');
+      pass.autocomplete = register ? 'new-password' : 'current-password';
+      pass.placeholder = register ? 'At least 12 characters' : 'Your password';
+      $('#submitBtn').textContent = register ? 'Create account' : 'Log in';
+      $('#authFoot').innerHTML = register
+        ? 'Already registered? <a href="/login">Log in instead</a>.'
+        : 'New here? <a href="/register">Create an account</a>.';
+      msg.textContent = '';
+      msg.className = 'auth-msg';
+      if (!register) updateStrength();
+    }
+
+    function emailProblem(value) {
+      const v = value.trim();
+      if (!v) return 'Email is required.';
+      if (v.length > 254) return 'Email is too long.';
+      const parts = v.split('@');
+      if (parts.length !== 2) return 'Use one @ symbol.';
+      const [local, domain] = parts;
+      if (!local || local.length > 64 ||
+          !/^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.\-]+$/.test(local) ||
+          local.startsWith('.') || local.endsWith('.') || local.includes('..')) {
+        return 'Enter a valid name before @.';
+      }
+      const labels = domain.split('.');
+      if (labels.length < 2 || !/^[A-Za-z]{2,}$/.test(labels[labels.length - 1])) {
+        return 'Enter a domain with a TLD, e.g. example.com.';
+      }
+      if (labels.some((l) => !/^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?$/.test(l))) {
+        return 'Enter a valid domain name.';
+      }
+      return '';
+    }
+
+    function showEmailError(text) {
+      const el = $('#emailError');
+      el.textContent = text;
+      el.classList.toggle('show', !!text);
+    }
+
+    function ruleStates(value) {
+      return {
+        length: value.length >= 12 && value.length <= 128,
+        lower: /[a-z]/.test(value),
+        upper: /[A-Z]/.test(value),
+        digit: /\d/.test(value),
+        special: /[^A-Za-z0-9\s]/.test(value),
+        common: value.length > 0 && !common.has(value.toLowerCase()),
+      };
+    }
+
+    function updateStrength() {
+      if (mode !== 'register') return;
+      const states = ruleStates(pass.value);
+      const passed = Object.values(states).filter(Boolean).length;
+      const filled = pass.value ? passed : 0;
+      $('#strengthFill').style.width = (filled / 6 * 100) + '%';
+      const colors = ['#f87171', '#fb923c', '#facc15', '#a3e635', '#2dd4bf', '#14b8a6'];
+      $('#strengthFill').style.background = colors[Math.min(5, Math.max(0, filled - 1))];
+      const labels = ['Enter a password','Very weak','Weak','Fair','Good','Strong','Very strong'];
+      $('#strengthText').textContent = labels[filled];
+      $('#strengthScore').textContent = filled + '/6';
+      document.querySelectorAll('#rules li').forEach((li) => {
+        li.classList.toggle('ok', !!states[li.dataset.rule]);
+      });
+    }
+
+    function show(text, kind) {
+      msg.textContent = text;
+      msg.className = 'auth-msg ' + kind;
+    }
+
+    tabReg.addEventListener('click', () => setMode('register'));
+    tabLog.addEventListener('click', () => {
+      const target = isLogin() ? '/login' : '/login';
+      history.replaceState(null, '', target + (isLogin() ? location.search : ''));
+      setMode('login');
+    });
+    $('#togglePass').addEventListener('click', () => {
+      pass.type = pass.type === 'password' ? 'text' : 'password';
+      $('#togglePass').textContent = pass.type === 'password' ? 'SHOW' : 'HIDE';
+    });
+    pass.addEventListener('input', updateStrength);
+    email.addEventListener('input', () => showEmailError(
+      email.value.trim() ? emailProblem(email.value) : ''));
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      show('', '');
+      const username = user.value.trim();
+      if (!/^[A-Za-z0-9_.-]{3,32}$/.test(username)) {
+        show('Username: 3–32 letters, numbers, dot, dash or underscore.', 'err');
+        return;
+      }
+      if (mode === 'register') {
+        const emailIssue = emailProblem(email.value);
+        if (emailIssue) {
+          showEmailError(emailIssue);
+          show(emailIssue, 'err');
+          return;
+        }
+        const states = ruleStates(pass.value);
+        if (Object.values(states).some((v) => !v)) {
+          show('Please satisfy every password rule above.', 'err');
+          return;
+        }
+        if (pass.value !== confirm.value) {
+          show('The two passwords do not match.', 'err');
+          return;
+        }
+      } else if (!pass.value) {
+        show('Enter your password.', 'err');
+        return;
+      }
+
+      const button = $('#submitBtn');
+      button.disabled = true;
+      button.textContent = 'Please wait…';
+      try {
+        const res = await fetch(mode === 'register' ? '/api/register' : '/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(mode === 'register'
+            ? { username, email: email.value.trim().toLowerCase(), password: pass.value }
+            : { username, password: pass.value }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Request failed.');
+        show('Success — opening the workbench…', 'ok');
+        location.href = mode === 'login' && next.startsWith('/') ? next : '/app';
+      } catch (err) {
+        show(err.message, 'err');
+        button.disabled = false;
+        button.textContent = mode === 'register' ? 'Create account' : 'Log in';
+      }
+    });
+
+    setMode(mode);
+  })();
+  </script>
+</body>
+</html>
