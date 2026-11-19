@@ -1,6 +1,6 @@
 # DIP Studio — Histogram Equalization Workbench
 
-Interactive histogram-equalization workbench created by **Manjunath Bhaskar Hebbar** (20241EVL0037).
+Interactive histogram-equalization workbench created by **Manjunath Bhaskar Hebbar**.
 
 **Live on Vercel:** https://dip-studio-gilt.vercel.app
 
